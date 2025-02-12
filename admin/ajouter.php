@@ -6,6 +6,84 @@ $uploadDir = "/var/www/teksi/images/";
 
 // https://teksi.allo-teksi.xyz/images/images1.png
 
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Vérifiez si la clé 'quantite' existe dans le tableau $_POST
+    $quantite = isset($_POST['quantite']) ? (int)$_POST['quantite'] : 0; // 0 ou une valeur par défaut
+
+    // Échapper les autres valeurs pour éviter les injections SQL
+    $nom = $conn->real_escape_string($_POST['nom']);
+    $description = $conn->real_escape_string(substr($_POST['description'], 0, 250));
+    $prix = $conn->real_escape_string($_POST['prix']);
+
+    // Gestion des fichiers
+    $photo1 = isset($_FILES['photo1']['name']) && !empty($_FILES['photo1']['name']) ? $uploadDir . basename($_FILES['photo1']['name']) : null;
+    $photo2 = isset($_FILES['photo2']['name']) && !empty($_FILES['photo2']['name']) ? $uploadDir . basename($_FILES['photo2']['name']) : null;
+    $photo3 = isset($_FILES['photo3']['name']) && !empty($_FILES['photo3']['name']) ? $uploadDir . basename($_FILES['photo3']['name']) : null;
+    $video1 = isset($_FILES['video1']['name']) && !empty($_FILES['video1']['name']) ? $uploadDir . basename($_FILES['video1']['name']) : null;
+    $video2 = isset($_FILES['video2']['name']) && !empty($_FILES['video2']['name']) ? $uploadDir . basename($_FILES['video2']['name']) : null;
+
+    // Déplacer les fichiers téléchargés
+    if ($photo1 && !move_uploaded_file($_FILES['photo1']['tmp_name'], $photo1)) {
+        echo "Erreur lors du téléchargement de la photo 1.";
+    }
+    if ($photo2 && !move_uploaded_file($_FILES['photo2']['tmp_name'], $photo2)) {
+        echo "Erreur lors du téléchargement de la photo 2.";
+    }
+    if ($photo3 && !move_uploaded_file($_FILES['photo3']['tmp_name'], $photo3)) {
+        echo "Erreur lors du téléchargement de la photo 3.";
+    }
+    if ($video1 && !move_uploaded_file($_FILES['video1']['tmp_name'], $video1)) {
+        echo "Erreur lors du téléchargement de la vidéo 1.";
+    }
+    if ($video2 && !move_uploaded_file($_FILES['video2']['tmp_name'], $video2)) {
+        echo "Erreur lors du téléchargement de la vidéo 2.";
+    }
+
+    // Insertion du produit dans la table 'produit'
+    $sqlProduit = "INSERT INTO produit (nom, description, prix, photo1, photo2, photo3, video1, video2, quantite) 
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    $stmtProduit = $conn->prepare($sqlProduit);
+    $stmtProduit->bind_param("ssdsssssi", $nom, $description, $prix, $photo1, $photo2, $photo3, $video1, $video2, $quantite);
+
+    if ($stmtProduit->execute()) {
+        // Récupérer l'ID du produit inséré
+        $produit_id = $conn->insert_id;
+
+        // Si des tailles ont été envoyées, insérer dans 'produit_taille'
+        if (!empty($_POST['taille']) && is_array($_POST['taille']) && is_array($_POST['quantite_taille'])) {
+            $tailles = $_POST['taille']; 
+            $quantites = $_POST['quantite_taille'];
+
+            // Vérifier que les deux tableaux ont la même taille
+            if (count($tailles) === count($quantites)) {
+                $sqlTaille = "INSERT INTO produit_taille (produit_id, taille, quantite) VALUES (?, ?, ?)";
+                $stmtTaille = $conn->prepare($sqlTaille);
+
+                foreach ($tailles as $key => $taille) {
+                    $quantiteTaille = (int)$quantites[$key]; // Convertir en entier
+                    $stmtTaille->bind_param("isi", $produit_id, $taille, $quantiteTaille);
+                    $stmtTaille->execute();
+                }
+
+                $stmtTaille->close();
+                echo "Produit et tailles insérés avec succès !";
+            } else {
+                echo "Erreur : Nombre de tailles et de quantités ne correspond pas.";
+            }
+        } 
+        
+        echo "Produit ajouté avec succès !";
+    } else {
+        echo "Erreur lors de l'insertion du produit : " . $conn->error;
+    }
+
+    // Fermeture de la connexion
+    $stmtProduit->close();
+    $conn->close();
+}
+
+/*
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Échapper les valeurs pour éviter les injections SQL
     $nom = $conn->real_escape_string($_POST['nom']);
@@ -388,42 +466,43 @@ if($maquantite=='2'){
 
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-        const selectElement = document.getElementById("pet-select");
-        const quantiteContainer = document.getElementById("quantite-container");
+    const selectElement = document.getElementById("pet-select");
+    const quantiteContainer = document.getElementById("quantite-container");
 
-        selectElement.addEventListener("change", function () {
-            let selectedValue = selectElement.value;
-            let content = "";
+    selectElement.addEventListener("change", function () {
+        let selectedValue = selectElement.value;
+        let content = "";
 
-            if (selectedValue === "1") {
-                content = `
-                    <td>
-                        <label for="quantite">Quantité :</label>
-                        <input type="number" id="quantite" name="quantite" required>
-                    </td>
-                    <td>
-                        <label for="prix">Prix :</label>
-                        <input type="text" id="prix" name="prix" required>
-                    </td>
-                `;
-            } else if (selectedValue === "2") {
-                content = `
-                    <td>
-                        <label for="quantite">Quantité :</label>
-                        <input type="number" id="quantite" name="quantite" required>
-                    </td>
-                    <td>
-                        <label for="prix">Prix :</label>
-                        <input type="text" id="prix" name="prix" required>
-                        <label for="taille">Taille :</label>
-                        <input type="text" id="taille" name="taille" required>
-                    </td>
-                `;
-            }
-            
-            quantiteContainer.innerHTML = content;
-        });
+        if (selectedValue === "1") {
+            content = `
+                <td>
+                    <label for="quantite">Quantité :</label>
+                    <input type="number" id="quantite" name="quantite" required>
+                </td>
+                <td>
+                    <label for="prix">Prix :</label>
+                    <input type="text" id="prix" name="prix" required>
+                </td>
+            `;
+        } else if (selectedValue === "2") {
+            content = `
+                <td>
+                    <label for="quantite_taille">Quantité  :</label>
+                    <input type="number" name="quantite_taille[]" required>
+                </td>
+                <td>
+                    <label for="prix">Prix :</label>
+                    <input type="text" id="prix" name="prix" required>
+                    <label for="taille">Taille :</label>
+                    <input type="text" name="taille[]" required>
+                </td>
+            `;
+        }
+        
+        quantiteContainer.innerHTML = content;
     });
+});
+
 
 
     document.addEventListener("DOMContentLoaded", function () {
