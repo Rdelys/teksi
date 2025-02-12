@@ -2,35 +2,37 @@
 require("connecte.php");
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
-    // Vérifier si l'action correspond à la mise à jour
-    if (isset($_POST['page']) && $_POST['page'] === 'detail2') {
-        // Récupérer et valider les données du formulaire
-        $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
-        $quantite = isset($_POST['quantite']) ? intval($_POST['quantite']) : 0;
+    $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
+    $prix = isset($_POST['prix']) ? floatval($_POST['prix']) : 0;
+    $quantite = isset($_POST['quantite']) ? intval($_POST['quantite']) : 0;
 
-        if ($id > 0 && $quantite >= 0) {
-            // Préparer et exécuter la requête d'UPDATE
-            $stmt = $conn->prepare("UPDATE produit SET quantite = ? WHERE id = ?");
-            $stmt->bind_param("ii", $quantite, $id);
+    if ($id > 0) {
+        // Mettre à jour le produit (prix et quantité)
+        $stmt = $conn->prepare("UPDATE produit SET prix = ?, quantite = ? WHERE id = ?");
+        $stmt->bind_param("dii", $prix, $quantite, $id);
+        $stmt->execute();
+        $stmt->close();
 
-            if ($stmt->execute()) {
-                echo "<p>Produit mis à jour avec succès.</p>";
-            } else {
-                echo "<p>Erreur lors de la mise à jour : " . htmlspecialchars($conn->error) . "</p>";
+        // Mettre à jour les tailles
+        if (!empty($_POST['tailles'])) {
+            foreach ($_POST['tailles'] as $taille_id => $taille_quantite) {
+                $taille_quantite = intval($taille_quantite);
+                $stmt = $conn->prepare("UPDATE produit_taille SET quantite = ? WHERE id = ?");
+                $stmt->bind_param("ii", $taille_quantite, $taille_id);
+                $stmt->execute();
+                $stmt->close();
             }
-
-            $stmt->close();
-        } else {
-            echo "<p>Erreur : données invalides.</p>";
         }
+
+        echo "<p>Mise à jour réussie.</p>";
+    } else {
+        echo "<p>Erreur : données invalides.</p>";
     }
 }
 
-// Validation de l'ID pour la lecture
+// Récupérer les informations du produit
 $id = isset($_GET['id']) ? intval($_GET['id']) : 0;
-
 if ($id > 0) {
-    // Préparer la requête pour récupérer les informations du produit
     $stmt = $conn->prepare("SELECT * FROM produit WHERE id = ?");
     $stmt->bind_param("i", $id);
     $stmt->execute();
@@ -38,36 +40,61 @@ if ($id > 0) {
 
     if ($result->num_rows > 0) {
         $row = $result->fetch_assoc();
+        $prix = htmlspecialchars($row['prix']);
         $quantite = htmlspecialchars($row['quantite']);
     } else {
         echo "<p>Produit introuvable.</p>";
-        $quantite = '';
+        exit;
     }
+    $stmt->close();
 
+    // Récupérer les tailles associées
+    $stmt = $conn->prepare("SELECT id, taille, quantite FROM produit_taille WHERE produit_id = ?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $resultTailles = $stmt->get_result();
+    $tailles = [];
+
+    while ($rowTaille = $resultTailles->fetch_assoc()) {
+        $tailles[] = $rowTaille;
+    }
     $stmt->close();
 } else {
     echo "<p>ID de produit invalide.</p>";
-    $quantite = '';
+    exit;
 }
 ?>
 
 <!-- Formulaire de mise à jour -->
 <form method="post" action="">
-    <input type="hidden" name="page" value="detail2">
     <input type="hidden" name="id" value="<?php echo $id; ?>">
     <table border="2" width="80%">
         <tr>
-            <td>Quantité</td>
+            <td>Prix (USD)</td>
             <td>
-                <input 
-                    type="number" 
-                    name="quantite" 
-                    value="<?php echo $quantite; ?>" 
-                    min="0" 
-                    step="1" 
-                    required>
+                <input type="number" name="prix" value="<?php echo $prix; ?>" min="0" step="0.01" required>
             </td>
         </tr>
+        <tr>
+            <td>Quantité</td>
+            <td>
+                <input type="number" name="quantite" value="<?php echo $quantite; ?>" min="0" step="1" required>
+            </td>
+        </tr>
+        <?php if (!empty($tailles)): ?>
+            <tr>
+                <td>Tailles Disponibles</td>
+                <td>
+                    <?php foreach ($tailles as $taille): ?>
+                        <label>
+                            <?php echo htmlspecialchars($taille['taille']); ?>
+                            <input type="number" name="tailles[<?php echo $taille['id']; ?>]" value="<?php echo $taille['quantite']; ?>" min="0" step="1">
+                        </label>
+                        <br>
+                    <?php endforeach; ?>
+                </td>
+            </tr>
+        <?php endif; ?>
         <tr>
             <td></td>
             <td><input type="submit" value="Mettre à jour"></td>
