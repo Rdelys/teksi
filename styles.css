@@ -1,0 +1,69 @@
+/* Réinitialisation des marges et des rembourrages */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Style du header */
+.header {
+    background-color: #ffffff	;
+    padding: 10px 20px;
+    width: 100%;
+    position: fixed; /* Pour fixer en haut */
+    top: 0; /* Pour le fixer en haut de la page */
+    z-index: 999; /* Pour le positionner au-dessus du contenu */
+}
+
+/* Style de l'input de recherche */
+.header input[type="text"] {
+    width: 70%;
+    padding: 8px;
+    border: none;
+    border-radius: 5px;
+}
+
+/* Style du bouton de recherche */
+.header button {
+    padding: 8px 15px;
+    border: none;
+    background-color: #000000;
+    color: white;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+/* Style du contenu pour compenser l'espace laissé par le header fixé */
+.content {
+    padding-top: 70px; /* Ajustez la valeur en fonction de la hauteur de votre header */
+}
+
+.blue-button {
+            background-color: #007bff; /* Couleur bleue */
+            color: white; /* Texte en blanc */
+            padding: 10px 20px; /* Espacement intérieur du bouton */
+            border: none; /* Pas de bordure */
+            border-radius: 5px; /* Coins arrondis */
+            text-align: center; /* Alignement du texte */
+            text-decoration: none; /* Pas de soulignement */
+            display: inline-block; /* Affichage en ligne */
+            cursor: pointer; /* Curseur de la souris en pointeur */
+        }
+ 
+ 
+.blue-button:hover {
+            background-color: #0056b3; /* Couleur bleue plus foncée */
+        }
+
+
+.container {
+            display: flex;
+            align-items: center;
+        }
+.container a {
+            margin-right: 10px; /* Espace entre le lien et le texte */
+        }
+.container center {
+            margin: 0; /* Réinitialiser les marges du centre */
+            padding: 0; /* Réinitialiser les paddings du centre */
+        }

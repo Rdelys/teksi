@@ -1,0 +1,54 @@
+
+ <!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fond Orange avec Image</title>
+    <style>
+        body {
+            background-color: orange;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        #imageContainer {
+            display: block; /* Afficher le conteneur par défaut */
+        }
+
+        #myImage {
+            max-width: 100%;
+            max-height: 100%;
+            display: none; /* Masquer l'image par défaut */
+        }
+    </style>
+    <script>
+        window.onload = function() {
+            var imageContainer = document.getElementById("imageContainer");
+            var myImage = document.getElementById("myImage");
+
+            // Faire apparaître l'image pendant 10 secondes
+            setTimeout(function() {
+                myImage.style.display = "block";
+                
+                // Faire disparaître l'image après 10 secondes
+                setTimeout(function() {
+                    myImage.style.display = "none";
+                    // Redirection vers index-new.php après 10 secondes
+                    window.location.href = "index-new.php";
+                }, 5000);
+            }, 0); // Afficher immédiatement
+        };
+    </script>
+</head>
+<body>
+    <div id="imageContainer">
+        <img id="myImage" src="monlogo.png" alt="Logo">
+    </div>
+</body>
+</html>
+
