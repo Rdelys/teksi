@@ -1,48 +1,75 @@
 <?php
-// status=2&orderId=12345&userId=67890
-$Monstatus  =  $_GET['status']; 
-$MyorderId =  $_GET['orderId']; 
-$MyUserid =  $_GET['userId'];  
+// Connexion à la base de données
+$servername = "146.59.227.113";
+$username = "TshivTony";
+$password = "TsTon2023nc";
+$dbname = "teksi";
 
-print("Monstatus $Monstatus -  MyorderId $MyorderId  - MyUserid $MyUserid"); 
+$conn = new mysqli($servername, $username, $password, $dbname);
 
-if($Monstatus=='1'){
-
-// decompte de quantite 1 
-	
-print("<br> <b> Vendu </b>  ");
-
- 	
-	
+// Vérifier la connexion
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
 }
 
-if($Monstatus=='2'){
-	
-print("<br> <b> Refuser </b>  "); 		
+// Récupérer les paramètres avec sécurité
+$Monstatus = isset($_GET['status']) ? intval($_GET['status']) : null;
+$MyorderId = isset($_GET['orderId']) ? intval($_GET['orderId']) : null;
+$MyUserid = isset($_GET['userId']) ? intval($_GET['userId']) : null;
+
+if ($Monstatus === 1 && $MyorderId) { // "1" correspond à "Livré"
+    // Récupérer l'id du produit associé à la commande
+    $sql = "SELECT idproduit FROM commande WHERE id = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $MyorderId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($row = $result->fetch_assoc()) {
+        $idproduit = $row['idproduit'];
+
+        // Mettre à jour l'état de la commande
+        $updateCommande = "UPDATE commande SET etatcommande = 'vente', dateVente = NOW() WHERE id = ?";
+        $stmt2 = $conn->prepare($updateCommande);
+        $stmt2->bind_param("i", $MyorderId);
+        $stmt2->execute();
+
+
+        if ($stmt2->affected_rows > 0) { 
+            // Diminuer le stock du produit concerné
+            $updateStock = "UPDATE stock SET nombre = nombre - 1 WHERE id = ? AND nombre > 0";
+            $stmt3 = $conn->prepare($updateStock);
+            $stmt3->bind_param("i", $idproduit);
+            $stmt3->execute();
+
+            if ($stmt3->affected_rows > 0) {
+                echo "Commande validée et stock mis à jour.";
+            } else {
+                echo "Stock insuffisant ou erreur de mise à jour.";
+            }
+        } else {
+            echo "Erreur de mise à jour de la commande.";
+        }
+    } else {
+        echo "Commande non trouvée.";
+    }
 }
 
+// Affichage des statuts
+$statusLabels = [
+    2 => "Refusé",
+    3 => "Ne répond pas",
+    4 => "Reporté",
+    5 => "Annulé"
+];
 
+echo "<br> Monstatus: $Monstatus - MyorderId: $MyorderId - MyUserid: $MyUserid";
 
-if($Monstatus=='3'){
-	
-print("<br> <b> Ne repond pas  </b>  "); 		
+if ($Monstatus == 1) {
+    echo "<br><b>Vente</b>";
+} elseif (isset($statusLabels[$Monstatus])) {
+    echo "<br><b>{$statusLabels[$Monstatus]}</b>";
 }
 
-
-
-
-if($Monstatus=='4'){
-	
-print("<br> <b> Reporte </b>  "); 		
-}
-
-
-
-if($Monstatus=='5'){
-	
-print("<br> <b> Annuler le rendez vous  </b>  "); 		
-}
-
-
+$conn->close();
 ?>
-
